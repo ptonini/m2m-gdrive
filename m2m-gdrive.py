@@ -3,7 +3,7 @@ from pydrive.drive import GoogleDrive
 from pydrive.auth import GoogleAuth
 
 
-def get_child_obj(obj_type, drive, parent_id, obj_title=None):
+def get_child_obj(obj_type, drive, parent_id, obj_title):
 
     try:
         obj_list = drive.ListFile({'q': '"' + parent_id + '" in parents and trashed=false'}).GetList()
@@ -37,25 +37,22 @@ def main():
     settings_file = 'settings.yaml'
     http_timeout = 5
     package_path = 'repo/app2/3.0'
+    package_name = None
     save_to = 'worker-0.0.1-SNAPSHOT-jar-with-dependencies.jar'
 
     gauth = GoogleAuth(settings_file=settings_file, http_timeout=http_timeout)
     drive = GoogleDrive(gauth)
 
-    path_list = package_path.split('/')
+    folder_list = package_path.split('/')
 
-    folder_obj = get_child_obj('folder', drive, 'root', path_list[0])
-    path_list.pop(0)
+    folder_obj = get_child_obj('folder', drive, 'root', folder_list[0])
+    folder_list.pop(0)
 
-    path_list_depth = len(path_list)
-    index = 0
+    while len(folder_list) > 0:
+        folder_obj = get_child_obj('folder', drive, folder_obj['id'], folder_list[0])
+        folder_list.pop(0)
 
-    while path_list_depth > 0:
-        folder_obj = get_child_obj('folder', drive, folder_obj['id'], path_list[index])
-        path_list_depth -= 1
-        index += 1
-
-    file_obj = get_child_obj('file', drive, folder_obj['id'])
+    file_obj = get_child_obj('file', drive, folder_obj['id'], package_name)
     package = drive.CreateFile({'id': file_obj['id'], 'mimeType': file_obj['mimeType']})
 
     try:
